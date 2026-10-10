@@ -1,0 +1,57 @@
+name: Check Food Uncle ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "FoodUncle_Delivery_Fixed_Netlify.zip"
+      - ".github/workflows/check-food-uncle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project archive
+        run: |
+          mkdir -p extracted
+          unzip -q FoodUncle_Delivery_Fixed_Netlify.zip -d extracted
+          echo "Files in archive:"
+          find extracted -maxdepth 3 -type f | head -200
+
+      - name: Find package.json
+        id: project
+        run: |
+          PACKAGE="$(find extracted -name package.json -not -path '*/node_modules/*' -print -quit)"
+          if [ -z "$PACKAGE" ]; then
+            echo "::error::No package.json found inside the ZIP."
+            exit 1
+          fi
+          PROJECT_DIR="$(dirname "$PACKAGE")"
+          echo "dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+          echo "Project directory: $PROJECT_DIR"
+          cat "$PACKAGE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ""
+
+      - name: Install dependencies
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build project
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: npm run build
