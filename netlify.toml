@@ -1,13 +1,11 @@
 [build]
   command = "npm run build"
-  publish = "dist/client"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
 
-[functions]
-  node_bundler = "esbuild"
-
-[dev]
-  command = "npm run dev"
-  port = 3000
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
